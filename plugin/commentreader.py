@@ -361,7 +361,8 @@ class Weibo():
             logging.debug("request: " + url + ' POST: ' + urllib.urlencode(params))
             res = urllib2.urlopen(url, urllib.urlencode(params))
             self.token_info = json.load(res)
-            logging.debug("token_info: " + str(self.token_info))
+            logging.debug("response: " + str(self.token_info))
+            logging.debug("access_token: " + self.token_info['access_token'])
         except:
             # TODO: error handle
             logging.exception('')
@@ -385,7 +386,7 @@ class Weibo():
             logging.debug("request: " + url + '?' + urllib.urlencode(params))
             res = urllib2.urlopen(url + '?' + urllib.urlencode(params))
             raw_timeline = json.load(res)
-            logging.debug("timeline res: " + str(raw_timeline))
+            logging.debug("response: " + str(raw_timeline))
             self.next_page += 1
         except:
             # TODO: error handle
@@ -393,7 +394,7 @@ class Weibo():
 
         for raw_tweet in raw_timeline['statuses']:
             # we need only tweets that older than the tail tweet
-            if int(raw_tweet['id']) >= self.items[-1].id: continue
+            if len(self.items) > 0 and int(raw_tweet['id']) >= self.items[-1].id: continue
             self.items.append(Tweet(raw_tweet))
 
         return self.items
