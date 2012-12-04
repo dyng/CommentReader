@@ -21,44 +21,45 @@ if !exists('g:creader_debug_file')
     let g:creader_debug_file = '/var/tmp/creader.log'
 endif
 
-" initialization
-python cr_instance = CommentReader()
-
 " define functions
 function! s:CRopenbook(path)
-    python cr_instance.openBook(vim.eval('a:path'))
+    python CRopenbook(vim.eval("bufnr('')"), vim.eval('a:path'))
 endfunction
 
 function! s:CRopenweibo(auth_code)
-    python cr_instance.openWeibo(vim.eval('a:auth_code'))
+    python CRopenweibo(vim.eval("bufnr('')", vim.eval('a:auth_code'))
 endfunction
 
 function! s:CRopendouban()
-    python cr_instance.openDouban()
+    python CRopendouban(vim.eval("bufnr('')"))
 endfunction
 
 function! s:CRopentwitter()
-    python cr_instance.openTwitter()
+    python CRopentwitter(vim.eval("bufnr('')"))
 endfunction
 
 function! s:CRhide()
-    python cr_instance.hide()
+    python CRhide(vim.eval("bufnr('')"))
 endfunction
 
 function! s:CRforward()
-    python cr_instance.forward()
+    python CRforward(vim.eval("bufnr('')"))
 endfunction
 
 function! s:CRbackward()
-    python cr_instance.backward()
+    python CRbackward(vim.eval("bufnr('')"))
 endfunction
 
 function! s:CRnext()
-    python cr_instance.next()
+    python CRnext(vim.eval("bufnr('')"))
 endfunction
 
 function! s:CRprevious()
-    python cr_instance.previous()
+    python CRprevious(vim.eval("bufnr('')"))
+endfunction
+
+function! s:CRclose()
+    python CRclose(vim.eval("bufnr('')"))
 endfunction
 
 " define commands
@@ -69,6 +70,7 @@ command! -nargs=0                CRbackward  call s:CRbackward()
 command! -nargs=0                CRhide      call s:CRhide()
 command! -nargs=0                CRnext      call s:CRnext()
 command! -nargs=0                CRprevious  call s:CRprevious()
+command! -nargs=0                CRclose     call s:CRclose()
 
 " define maps
 nnoremap <silent> <leader>d :CRforward<CR>

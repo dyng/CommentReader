@@ -5,14 +5,76 @@ from datetime import datetime
 import json
 import logging
 
+# Initialization
 # global variables
-langdict = {
+CR_Langdict = {
             'python':  { 'prefix':  '#', 'filler':   '#', 'suffix':   '#', 'defs':   r'^def' },
             'perl':    { 'prefix':  '#', 'filler':   '#', 'suffix':   '#', 'defs':   r'^sub' },
             'vim':     { 'prefix':  '"', 'filler':   '"', 'suffix':   '"', 'defs':   r'^function' },
             'c':       { 'prefix':  '/*', 'filler':  '*', 'suffix':   '*/', 'defs':  r''},
             'cpp':     { 'prefix':  '//', 'filler':  '//', 'suffix':  '//', 'defs':  r''},
            }
+
+CR_Instance = {}
+
+
+# Interface
+
+def CRopenbook(bufnum, path):
+    CR_Instance.setdefault(bufnum, CommentReader())
+    CR_Instance[bufnum].openBook(path)
+
+def CRopenweibo(bufnum, auth_code):
+    CR_Instance.setdefault(bufnum, CommentReader())
+    CR_Instance[bufnum].openWeibo(auth_code)
+
+def CRopendouban(bufnum):
+    CR_Instance.setdefault(bufnum, CommentReader())
+    pass
+
+def CRopentwitter(bufnum):
+    CR_Instance.setdefault(bufnum, CommentReader())
+    pass
+
+def CRhide(bufnum):
+    if bufnum in CR_Instance:
+        CR_Instance[bufnum].hide()
+    else:
+        vim.command("echoe 'No contents have been opened!'")
+
+def CRclose(bufnum):
+    if bufnum in CR_Instance:
+        CR_Instance[bufnum].hide()
+        del CR_Instance[bufnum]
+    else:
+        vim.command("echoe 'No contents have been opened!'")
+
+def CRforward(bufnum):
+    if bufnum in CR_Instance:
+        CR_Instance[bufnum].forward()
+    else:
+        vim.command("echoe 'No contents have been opened!'")
+
+def CRbackward(bufnum):
+    if bufnum in CR_Instance:
+        CR_Instance[bufnum].backward()
+    else:
+        vim.command("echoe 'No contents have been opened!'")
+
+def CRnext(bufnum):
+    if bufnum in CR_Instance:
+        CR_Instance[bufnum].next()
+    else:
+        vim.command("echoe 'No contents have been opened!'")
+
+def CRprevious(bufnum):
+    if bufnum in CR_Instance:
+        CR_Instance[bufnum].previous()
+    else:
+        vim.command("echoe 'No contents have been opened!'")
+
+
+# Main
 
 class CommentReader():
     def __init__(self):
@@ -28,8 +90,8 @@ class CommentReader():
                 }
         self.content = None
         self.view    = View(self.option)
-        self.pageNum = 0
-        self.sectNum = 0
+        self.base    = 0
+        self.offset  = 0
 
         # logging setting
         if self.meta['debug_mode'] == 1:
@@ -53,8 +115,8 @@ class CommentReader():
 
     def refresh(self):
         self.content.refresh()
-        self.pageNum = 0
-        self.sectNum = 0
+        self.base   = 0
+        self.offset = 0
         self.show()
 
     # closes
@@ -71,7 +133,8 @@ class CommentReader():
         self.view.clear()
 
         # get content and render 
-        raw_content_list = self.content.read(self.pageNum, self.view.getAnchorNum())
+        # TODO: need to check the EOF
+        raw_content_list = self.content.read(self.base, self.view.getAnchorNum())
         content_list = self.view.commentize_list(raw_content_list)
         self.view.render(content_list)
 
@@ -87,42 +150,57 @@ class CommentReader():
 
     # cursor moves
 
-    def forward(self):
-        self.pageNum += self.view.getAnchorNum()
-        self.show()
-        self.first()
+    def forward(self, seek=None):
+        # TODO: return if self.base == MAX
 
-    def backward(self, from_prev=False):
-        self.pageNum -= self.view.getAnchorNum()
-        if self.pageNum < 0:
-            self.pageNum = 0
+        self.base += self.view.getAnchorNum()
         self.show()
-        if from_prev:
-            self.last()
-        else:
+        if seek == None:
             self.first()
+        else:
+            self.seek(seek)
+
+    def backward(self, seek=None):
+        if self.base == 0:
+            return
+
+        self.base -= self.view.getAnchorNum()
+        if self.base < 0:
+            self.base = 0
+        self.show()
+        if seek == None:
+            self.first()
+        else:
+            self.seek(seek)
+
+    # index is the current node's index in all node's array
+    # index = self.base + self.offset
+    def seek(self, index):
+        self.offset = (index - self.base) % self.view.getAnchorNum()
+        self.view.pointTo(self.offset)
 
     def first(self):
-        self.sectNum = 0
-        self.view.pointTo(self.sectNum)
+        self.offset = 0
+        self.view.pointTo(self.offset)
 
     def last(self):
-        self.sectNum = self.view.getAnchorNum() - 1
-        self.view.pointTo(self.sectNum)
+        self.offset = self.view.getAnchorNum() - 1
+        self.view.pointTo(self.offset)
 
     def next(self):
-        self.sectNum += 1
-        if self.sectNum >= self.view.getAnchorNum():
-            self.forward()
+        self.offset += 1
+        if self.offset >= self.view.getAnchorNum():
+            self.forward(self.base + self.offset)
         else:
-            self.view.pointTo(self.sectNum)
+            self.view.pointTo(self.offset)
 
     def previous(self):
-        self.sectNum -= 1
-        if self.sectNum < 0:
-            self.backward(from_prev=True)
+        self.offset -= 1
+        if self.offset < 0:
+            self.backward(self.base + self.offset)
         else:
-            self.view.pointTo(self.sectNum)
+            self.view.pointTo(self.offset)
+
 
 class Anchor():
     def __init__(self, rel_posi, pre_anchor):
@@ -163,15 +241,16 @@ class View():
 
         # define commenter
         filetype = vim.eval("&filetype")
-        if filetype in langdict:
-            self.prefix = langdict[filetype]['prefix']
-            self.filler = langdict[filetype]['filler']
-            self.suffix = langdict[filetype]['suffix']
+        if filetype in CR_Langdict:
+            self.prefix = CR_Langdict[filetype]['prefix']
+            self.filler = CR_Langdict[filetype]['filler']
+            self.suffix = CR_Langdict[filetype]['suffix']
         else:
             vim.command("echom 'Sorry, this language is not supported.'")
+            return
 
         # define declaration reserved word
-        self.defs = langdict[filetype]['defs']
+        self.defs = CR_Langdict[filetype]['defs']
 
         # define anchors
         self.anchors = []
@@ -179,6 +258,7 @@ class View():
         self.refreshAnchor()
         if self.getAnchorNum() == 0:
             vim.command("echom 'Sorry, there is no place for comment.'")
+            return
 
 
     # anchors
@@ -253,8 +333,8 @@ class View():
 
     # cursor move
 
-    def pointTo(self, sect_num):
-        anchor = self.anchors[sect_num]
+    def pointTo(self, offset):
+        anchor = self.anchors[offset]
         position = anchor.getAbsPosition() + (anchor.size - 1)//2
         vim.command("normal {0}z.".format(position))
 
@@ -371,6 +451,8 @@ class Weibo():
 
     # you can get more tweets by calling this method repeatedly
     def pullTweets(self):
+        vim.command("echo 'Loading...'")
+
         # call reqAccessToken first if access_token not defined
         if self.token_info is None:
             self.reqAccessToken()
