@@ -13,7 +13,12 @@ if !exists('g:creader_debug_mode')
     let g:creader_debug_mode = 1
 endif
 if !exists('g:creader_debug_file')
+    " TODO: default value
     let g:creader_debug_file = '/var/tmp/creader.log'
+endif
+if !exists('g:creader_session_file')
+    " TODO: default value
+    let g:creader_session_file = $HOME.'/.vim-infos/vim_creader_session'
 endif
 
 " define functions
@@ -22,7 +27,7 @@ function! commentreader#CRopenbook(path)
 endfunction
 
 function! commentreader#CRopenweibo(auth_code)
-    python CRopenweibo(vim.eval("bufnr('')", vim.eval('a:auth_code'))
+    python CRopenweibo(vim.eval("bufnr('')"), vim.eval('a:auth_code'))
 endfunction
 
 function! commentreader#CRopendouban()
@@ -55,4 +60,8 @@ endfunction
 
 function! commentreader#CRclose()
     python CRclose(vim.eval("bufnr('')"))
+endfunction
+
+function! commentreader#CRsavesession()
+    python CRsavesession(vim.eval("bufnr('')"))
 endfunction

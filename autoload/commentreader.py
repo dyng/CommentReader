@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import vim
 import urllib
 import urllib2
@@ -73,6 +74,11 @@ def CRprevious(bufnum):
     else:
         vim.command("echoe 'No contents have been opened!'")
 
+def CRsavesession(bufnum):
+    if bufnum in CR_Instance:
+        CR_Instance[bufnum].saveSession()
+    else:
+        vim.command("echoe 'No contents have been opened!'")
 
 # Main
 
@@ -81,32 +87,47 @@ class CommentReader():
         self.option  = {
                 'line_len': int(vim.eval('g:creader_lines_per_block')),
                 'line_num': int(vim.eval('g:creader_chars_per_line')),
-                }
-        self.meta = {
+                'session_file': vim.eval('g:creader_session_file'),
                 'debug_mode': int(vim.eval('g:creader_debug_mode')),
                 'debug_file': vim.eval('g:creader_debug_file'),
-                'app_key':    '1861844333',
-                'app_secret': '160fcb0ca75b22e35c644f8758e279c1',
                 }
         self.content = None
+        self.session = self.loadSession()
         self.view    = View(self.option)
         self.base    = 0
         self.offset  = 0
 
         # logging setting
-        if self.meta['debug_mode'] == 1:
-            logging.basicConfig(filename=self.meta['debug_file'], level=logging.DEBUG, format='%(asctime)s %(message)s')
+        if self.option['debug_mode']:
+            logging.basicConfig(filename=self.option['debug_file'], level=logging.DEBUG, format='%(asctime)s %(message)s')
 
+    # session
+
+    def saveSession(self):
+        self.session[self.content.__class__.__name__] = self.content.saveSession()
+        fp = open(self.option['session_file'], 'w')
+        try:
+            json.dump(self.session, fp)
+        except:
+            # TODO: do something
+            pass
+
+    def loadSession(self):
+        fp = open(self.option['session_file'], 'r')
+        try:
+            return json.load(fp)
+        except:
+            return {}
 
     # opens
 
     def openBook(self, path):
-        self.content = Content('book', Book(path, self.meta, self.option), self.option)
+        self.content = Book(path, self.session.get('Book', {}), self.option)
         self.view.refreshAnchor()
         self.show()
 
     def openWeibo(self, auth_code):
-        self.content = Content('weibo', Weibo(auth_code, self.meta, self.option), self.option)
+        self.content = Weibo(auth_code, self.session.get('Weibo', {}), self.option)
         self.view.refreshAnchor()
         self.show()
 
@@ -123,8 +144,6 @@ class CommentReader():
 
     def close(self):
         pass
-
-
 
     # views
 
@@ -147,7 +166,6 @@ class CommentReader():
         self.view.clear()
         vim.command("call cursor('{0}', '{1}')".format(line_bak, col_bak))
 
-
     # cursor moves
 
     def forward(self, seek=None):
@@ -155,7 +173,7 @@ class CommentReader():
 
         self.base += self.view.getAnchorNum()
         self.show()
-        if seek == None:
+        if seek is None:
             self.first()
         else:
             self.seek(seek)
@@ -168,7 +186,7 @@ class CommentReader():
         if self.base < 0:
             self.base = 0
         self.show()
-        if seek == None:
+        if seek is None:
             self.first()
         else:
             self.seek(seek)
@@ -180,26 +198,24 @@ class CommentReader():
         self.view.pointTo(self.offset)
 
     def first(self):
-        self.offset = 0
-        self.view.pointTo(self.offset)
+        self.seek(self.base)
 
     def last(self):
-        self.offset = self.view.getAnchorNum() - 1
-        self.view.pointTo(self.offset)
+        self.seek(self.base + self.view.getAnchorNum - 1)
 
     def next(self):
-        self.offset += 1
-        if self.offset >= self.view.getAnchorNum():
-            self.forward(self.base + self.offset)
+        offset = self.offset + 1
+        if offset >= self.view.getAnchorNum():
+            self.forward(self.base + offset)
         else:
-            self.view.pointTo(self.offset)
+            self.seek(self.base + offset)
 
     def previous(self):
-        self.offset -= 1
-        if self.offset < 0:
-            self.backward(self.base + self.offset)
+        offset = self.offset - 1
+        if offset < 0:
+            self.backward(self.base + offset)
         else:
-            self.view.pointTo(self.offset)
+            self.seek(self.base + offset)
 
 
 class Anchor():
@@ -260,7 +276,6 @@ class View():
             vim.command("echom 'Sorry, there is no place for comment.'")
             return
 
-
     # anchors
 
     def getAnchorNum(self):
@@ -287,8 +302,6 @@ class View():
             pre_anchor = new_anchor
         # restore cursor position
         vim.command("call cursor('{0}', '{1}')".format(line_bak, col_bak))
-
-
 
     # show or hide contents
 
@@ -329,8 +342,6 @@ class View():
             # unbind content and anchor
             anchor.unbind()
 
-
-
     # cursor move
 
     def pointTo(self, offset):
@@ -353,24 +364,25 @@ class View():
 
 
 class Content():
-    def __init__(self, type, stream, option):
-        self.type   = type
-        self.stream = stream
-
     def read(self, index, amount):
-        items = self.stream.getItem(index, amount)
+        items = self.getItem(index, amount)
         return [i.content() for i in items]
 
-    def refresh(self):
-        if self.type == 'weibo':
-            stream.refreshWeibo()
+    def getItem(self):
+        pass
 
+    def refresh(self):
+        pass
+
+class Item():
+    def Content(self):
+        pass
 
 # Content: Book
 
-class Book():
-    def __init__(self, path, meta, option):
-        self.fd      = open(path, 'r')
+class Book(Content):
+    def __init__(self, path, session, option):
+        self.fp      = open(path, 'r')
         self.items   = []
         self.lineLen = option['line_len']
         self.lineNum = option['line_num']
@@ -385,21 +397,21 @@ class Book():
                         'line_len':self.lineLen,
                         'line_num':self.lineNum,
                         }
-                item = Page(self.fd, option)
+                item = Page(self.fp, option)
                 if item.content == "": break
                 self.items.append(item)
                 output.append(item)
         return output
 
-class Page():
-    def __init__(self, fd, option):
+class Page(Item):
+    def __init__(self, fp, option):
         self.lineLen = option['line_len']
         self.lineNum = option['line_num']
 
         content = []
         line_loaded = 0
         while line_loaded <= self.lineLen:
-            line = fd.readline().decode('utf-8')
+            line = fp.readline().decode('utf-8')
             if not line: break
             line = line.rstrip('\r\n')
             if len(line) == 0: line = " "
@@ -416,17 +428,24 @@ class Page():
 
 # Content: Weibo
 
-class Weibo():
-    def __init__(self, auth_code, meta, option):
-        self.auth_code = auth_code
-        self.items = []
-        self.next_page = 1
-        self.token_info = None
+class Weibo(Content):
+    def __init__(self, auth_code, session, option):
+        self.auth_code  = auth_code
+        self.items      = []
+        self.next_page  = 1
+        self.token_info = self.loadSession(session)
+        if not self.token_info:
+            if not auth_code:
+                self.token_info = self.reqAccessToken()
+            else:
+                logging.error("missed argument: auth_code")
+                vim.command("echoe 'token expired! you need entering your auth_code'")
+
 
     def reqAccessToken(self):
-        client_id = '1861844333'
+        client_id     = '1861844333'
         client_secret = '160fcb0ca75b22e35c644f8758e279c1'
-        redirect_uri = 'https://api.weibo.com/oauth2/default.html'
+        redirect_uri  = 'https://api.weibo.com/oauth2/default.html'
 
         url = 'https://api.weibo.com/oauth2/access_token'
         params = {
@@ -440,23 +459,17 @@ class Weibo():
         try:
             logging.debug("request: " + url + ' POST: ' + urllib.urlencode(params))
             res = urllib2.urlopen(url, urllib.urlencode(params))
-            self.token_info = json.load(res)
-            logging.debug("response: " + str(self.token_info))
-            logging.debug("access_token: " + self.token_info['access_token'])
+            token_info = json.load(res)
+            logging.debug("response: " + str(token_info))
+            logging.debug("access_token: " + token_info['access_token'])
         except:
             # TODO: error handle
             logging.exception('')
 
-        return self.token_info['access_token']
+        return token_info
 
     # you can get more tweets by calling this method repeatedly
     def pullTweets(self):
-        vim.command("echo 'Loading...'")
-
-        # call reqAccessToken first if access_token not defined
-        if self.token_info is None:
-            self.reqAccessToken()
-
         url = 'https://api.weibo.com/2/statuses/home_timeline.json'
         params = {
                 'access_token': self.token_info['access_token'],
@@ -486,11 +499,18 @@ class Weibo():
             self.pullTweets()
         return self.items[index:index+amount]
 
-    def refreshWeibo(self):
+    def refresh(self):
         self.items = []
         self.next_page = 1
 
-class Tweet():
+    def saveSession(self):
+        return self.token_info 
+
+    def loadSession(self, token_info):
+        # TODO:validate if token expired
+        return token_info
+
+class Tweet(Item):
     def __init__(self, raw_tweet):
         self.id     = int(raw_tweet['id'])
         self.author = raw_tweet['user']['screen_name']
