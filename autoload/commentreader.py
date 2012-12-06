@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-import vim
+import vim     # actually vim is imported in commentreader.vim
 import urllib
 import urllib2
-from datetime import datetime
+import urlparse
+import time
 import json
+import oauth2  # actually oauth2 is imported in commentreader.vim
 import logging
 
 # Initialization
@@ -33,9 +35,9 @@ def CRopendouban(bufnum):
     CR_Instance.setdefault(bufnum, CommentReader())
     pass
 
-def CRopentwitter(bufnum):
+def CRopentwitter(bufnum, PIN):
     CR_Instance.setdefault(bufnum, CommentReader())
-    pass
+    CR_Instance[bufnum].openTwitter(PIN)
 
 def CRhide(bufnum):
     if bufnum in CR_Instance:
@@ -91,7 +93,8 @@ class CommentReader():
                 'debug_mode': int(vim.eval('g:creader_debug_mode')),
                 'debug_file': vim.eval('g:creader_debug_file'),
                 }
-        self.content = None
+        self.head    = None # the pointer to current content
+        self.content = {}
         self.session = self.loadSession()
         self.view    = View(self.option)
         self.base    = 0
@@ -104,7 +107,8 @@ class CommentReader():
     # session
 
     def saveSession(self):
-        self.session[self.content.__class__.__name__] = self.content.saveSession()
+        for name in self.content:
+            self.session[name] = self.content[name].saveSession()
         fp = open(self.option['session_file'], 'w')
         try:
             json.dump(self.session, fp)
@@ -122,20 +126,43 @@ class CommentReader():
     # opens
 
     def openBook(self, path):
-        self.content = Book(path, self.session.get('Book', {}), self.option)
+        self.content['Book'] = Book(path, self.session.get('Book', {}), self.option)
+        self.head = self.content['Book']
         self.view.refreshAnchor()
         self.show()
 
     def openWeibo(self, auth_code):
-        self.content = Weibo(auth_code, self.session.get('Weibo', {}), self.option)
-        self.view.refreshAnchor()
-        self.show()
+        # Content
+        if 'Weibo' not in self.content:
+            self.content['Weibo'] = Weibo(self.session.get('Weibo', {}), self.option)
+            self.head = self.content['Weibo']
+        if auth_code:
+            self.head.reqAccessToken(auth_code)
 
-    def openTwitter(self):
-        pass
+        # View
+        if self.head.ready():
+            self.view.refreshAnchor()
+            self.show()
+        else:
+            self.head.reqAuthPage()
+
+    def openTwitter(self, PIN):
+        # Content
+        if 'Twitter' not in self.content:
+            self.content['Twitter'] = Twitter(self.session.get('Twitter', {}), self.option)
+            self.head = self.content['Twitter']
+        if PIN:
+            self.head.reqAccessToken(PIN)
+
+        # View
+        if self.head.ready():
+            self.view.refreshAnchor()
+            self.show()
+        else:
+            self.head.reqAuthPage()
 
     def refresh(self):
-        self.content.refresh()
+        self.head.refresh()
         self.base   = 0
         self.offset = 0
         self.show()
@@ -153,7 +180,7 @@ class CommentReader():
 
         # get content and render 
         # TODO: need to check the EOF
-        raw_content_list = self.content.read(self.base, self.view.getAnchorNum())
+        raw_content_list = self.head.read(self.base, self.view.getAnchorNum())
         content_list = self.view.commentize_list(raw_content_list)
         self.view.render(content_list)
 
@@ -374,6 +401,9 @@ class Content():
     def refresh(self):
         pass
 
+    def ready(self):
+        pass
+
 class Item():
     def Content(self):
         pass
@@ -429,20 +459,15 @@ class Page(Item):
 # Content: Weibo
 
 class Weibo(Content):
-    def __init__(self, auth_code, session, option):
-        self.auth_code  = auth_code
+    def __init__(self, session, option):
         self.items      = []
-        self.next_page  = 1
         self.token_info = self.loadSession(session)
-        if not self.token_info:
-            if not auth_code:
-                self.token_info = self.reqAccessToken()
-            else:
-                logging.error("missed argument: auth_code")
-                vim.command("echoe 'token expired! you need entering your auth_code'")
 
+    def reqAuthPage(self):
+        vim.command("let @+='{0}'".format('https://api.weibo.com/oauth2/authorize?client_id=1861844333&redirect_uri=https://api.weibo.com/oauth2/default.html'))
+        vim.command("echo 'open url in your clipboard'")
 
-    def reqAccessToken(self):
+    def reqAccessToken(self, auth_code):
         client_id     = '1861844333'
         client_secret = '160fcb0ca75b22e35c644f8758e279c1'
         redirect_uri  = 'https://api.weibo.com/oauth2/default.html'
@@ -453,43 +478,44 @@ class Weibo(Content):
                 'client_secret': client_secret,
                 'grant_type': 'authorization_code',
                 'redirect_uri': redirect_uri,
-                'code': self.auth_code,
+                'code': auth_code,
                 }
 
         try:
             logging.debug("request: " + url + ' POST: ' + urllib.urlencode(params))
             res = urllib2.urlopen(url, urllib.urlencode(params))
             token_info = json.load(res)
+            # assume the network transition spent about 1 minute
+            token_info['acquired_at'] = int(time.time())
             logging.debug("response: " + str(token_info))
             logging.debug("access_token: " + token_info['access_token'])
         except:
             # TODO: error handle
             logging.exception('')
 
+        self.token_info = token_info
         return token_info
 
-    # you can get more tweets by calling this method repeatedly
     def pullTweets(self):
         url = 'https://api.weibo.com/2/statuses/home_timeline.json'
         params = {
                 'access_token': self.token_info['access_token'],
                 'count': 20,
-                'page': self.next_page,
+                'page': 1,
                 }
+        if len(self.items) != 0:
+            params['max_id'] = self.items[-1].id - 1
 
         try:
             logging.debug("request: " + url + '?' + urllib.urlencode(params))
             res = urllib2.urlopen(url + '?' + urllib.urlencode(params))
             raw_timeline = json.load(res)
             logging.debug("response: " + str(raw_timeline))
-            self.next_page += 1
         except:
             # TODO: error handle
             logging.exception('')
 
         for raw_tweet in raw_timeline['statuses']:
-            # we need only tweets that older than the tail tweet
-            if len(self.items) > 0 and int(raw_tweet['id']) >= self.items[-1].id: continue
             self.items.append(Tweet(raw_tweet))
 
         return self.items
@@ -501,7 +527,12 @@ class Weibo(Content):
 
     def refresh(self):
         self.items = []
-        self.next_page = 1
+
+    def ready(self):
+        if self.token_info.get('access_token', ''):
+            return True
+        else:
+            return False
 
     def saveSession(self):
         return self.token_info 
@@ -510,17 +541,100 @@ class Weibo(Content):
         # TODO:validate if token expired
         return token_info
 
+# Content: Twitter
+class Twitter(Content):
+    def __init__(self, session, option):
+        # instance variables
+        self.items        = []
+        self.access_token = self.loadSession(session)
+
+        # oauth2
+        consumer_key    = "XmUMZJditvgoMPhomEv9Q"
+        consumer_secret = "FcYAmssSLy5vGusg8yPjqc8zLqwOAUoQxwQuKdjDg"
+        self.consumer = oauth2.Consumer(consumer_key, consumer_secret)
+
+        if self.ready():
+            token = oauth2.Token(self.access_token['oauth_token'], self.access_token['oauth_token_secret'])
+            self.client = oauth2.Client(self.consumer, token)
+        else:
+            self.client = oauth2.Client(self.consumer)
+
+    def reqAuthPage(self):
+        request_token_url = 'https://api.twitter.com/oauth/request_token'
+        authorize_url     = 'https://api.twitter.com/oauth/authorize'
+
+        try:
+            res, content = self.client.request(request_token_url, "GET")
+        except:
+            logging.exception('')
+
+        request_token = dict(urlparse.parse_qsl(content))
+        vim.command("let @+='{0}?oauth_token={1}'".format(authorize_url, request_token['oauth_token']))
+        vim.command("echo 'open url in your clipboard'")
+
+        self.request_token = request_token
+
+    def reqAccessToken(self, PIN):
+        access_token_url  = 'https://api.twitter.com/oauth/access_token'
+
+        token = oauth2.Token(self.request_token['oauth_token'], self.request_token['oauth_token_secret'])
+        token.set_verifier(PIN)
+        self.client = oauth2.Client(self.consumer, token)
+
+        res, content = self.client.request(access_token_url, "POST")
+
+        # save Access Token
+        self.access_token = dict(urlparse.parse_qsl(content))
+
+        # set client's token to Access Token
+        token = oauth2.Token(self.access_token['oauth_token'], self.access_token['oauth_token_secret'])
+        self.client = oauth2.Client(self.consumer, token)
+
+    def pullTweets(self):
+        url = 'http://api.twitter.com/1.1/statuses/home_timeline.json'
+        params = {
+                'count': 20,
+                }
+        if len(self.items) != 0:
+            params['max_id'] = self.items[-1].id - 1
+
+        res, content = self.client.request(url + '?' + urllib.urlencode(params), "GET")
+        try:
+            raw_timeline = json.loads(content)
+        except:
+            logging.exception('')
+
+        for raw_tweet in raw_timeline:
+            self.items.append(Tweet(raw_tweet))
+
+        return self.items
+
+    def ready(self):
+        if self.access_token.get('oauth_token', ''):
+            return True
+        else:
+            return False
+
+    def getItem(self, index, amount):
+        while index + amount > len(self.items):
+            self.pullTweets()
+        return self.items[index:index+amount]
+
+    def saveSession(self):
+        return self.access_token
+
+    def loadSession(self, access_token):
+        return access_token
+
 class Tweet(Item):
     def __init__(self, raw_tweet):
-        self.id     = int(raw_tweet['id'])
+        self.id = long(raw_tweet['id'])
         self.author = raw_tweet['user']['screen_name']
-        self.text   = raw_tweet['text']
+        self.text = raw_tweet['text']
 
     def content(self):
         return self.author + ": " + self.text + "\n"
 
 # Content: Douban
-
-# Content: Twitter
 
 # Content: Facebook

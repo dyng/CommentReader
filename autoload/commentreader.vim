@@ -1,4 +1,13 @@
-" load python module
+" import vim
+python import vim
+
+" import oauth2
+let libpath = substitute(expand('<sfile>:p:r'), 'commentreader$', 'lib', '')
+python sys.path.append(vim.eval('libpath'))
+python module = __import__('oauth2')
+python del sys.path[-1]
+
+" load commentreader.py
 let pyfile = expand('<sfile>:r') . '.py'
 exe 'pyfile' pyfile
 
@@ -34,8 +43,8 @@ function! commentreader#CRopendouban()
     python CRopendouban(vim.eval("bufnr('')"))
 endfunction
 
-function! commentreader#CRopentwitter()
-    python CRopentwitter(vim.eval("bufnr('')"))
+function! commentreader#CRopentwitter(PIN)
+    python CRopentwitter(vim.eval("bufnr('')"), vim.eval('a:PIN'))
 endfunction
 
 function! commentreader#CRhide()
