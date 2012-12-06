@@ -109,16 +109,16 @@ class CommentReader():
     def saveSession(self):
         for name in self.content:
             self.session[name] = self.content[name].saveSession()
-        fp = open(self.option['session_file'], 'w')
         try:
+            fp = open(self.option['session_file'], 'w+')
             json.dump(self.session, fp)
         except:
             # TODO: do something
             pass
 
     def loadSession(self):
-        fp = open(self.option['session_file'], 'r')
         try:
+            fp = open(self.option['session_file'], 'r')
             return json.load(fp)
         except:
             return {}
@@ -135,7 +135,8 @@ class CommentReader():
         # Content
         if 'Weibo' not in self.content:
             self.content['Weibo'] = Weibo(self.session.get('Weibo', {}), self.option)
-            self.head = self.content['Weibo']
+        self.head = self.content['Weibo']
+
         if auth_code:
             self.head.reqAccessToken(auth_code)
 
@@ -150,7 +151,8 @@ class CommentReader():
         # Content
         if 'Twitter' not in self.content:
             self.content['Twitter'] = Twitter(self.session.get('Twitter', {}), self.option)
-            self.head = self.content['Twitter']
+        self.head = self.content['Twitter']
+
         if PIN:
             self.head.reqAccessToken(PIN)
 
@@ -464,7 +466,11 @@ class Weibo(Content):
         self.token_info = self.loadSession(session)
 
     def reqAuthPage(self):
-        vim.command("let @+='{0}'".format('https://api.weibo.com/oauth2/authorize?client_id=1861844333&redirect_uri=https://api.weibo.com/oauth2/default.html'))
+        url          = 'https://api.weibo.com/oauth2/authorize'
+        client_id    = '1861844333'
+        redirect_uri = 'https://api.weibo.com/oauth2/default.html'
+
+        vim.command("let @+='{0}?client_id={1}&redirect_uri={2}'".format(url, client_id, redirect_uri))
         vim.command("echo 'open url in your clipboard'")
 
     def reqAccessToken(self, auth_code):
@@ -485,8 +491,6 @@ class Weibo(Content):
             logging.debug("request: " + url + ' POST: ' + urllib.urlencode(params))
             res = urllib2.urlopen(url, urllib.urlencode(params))
             token_info = json.load(res)
-            # assume the network transition spent about 1 minute
-            token_info['acquired_at'] = int(time.time())
             logging.debug("response: " + str(token_info))
             logging.debug("access_token: " + token_info['access_token'])
         except:
