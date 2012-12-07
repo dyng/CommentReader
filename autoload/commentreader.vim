@@ -1,16 +1,3 @@
-" import vim
-python import vim
-
-" import oauth2
-let libpath = substitute(expand('<sfile>:p:r'), 'commentreader$', 'lib', '')
-python sys.path.append(vim.eval('libpath'))
-python module = __import__('oauth2')
-python del sys.path[-1]
-
-" load commentreader.py
-let pyfile = expand('<sfile>:r') . '.py'
-exe 'pyfile' pyfile
-
 " parser user-define options
 if !exists('g:creader_chars_per_line')
     let g:creader_chars_per_line = 20
@@ -29,6 +16,19 @@ if !exists('g:creader_session_file')
     " TODO: default value
     let g:creader_session_file = $HOME.'/.vim-infos/vim_creader_session'
 endif
+
+" import vim
+python import vim
+
+" import oauth2
+let libpath = substitute(expand('<sfile>:p:r'), 'commentreader$', 'lib', '')
+python sys.path.append(vim.eval('libpath'))
+python module = __import__('oauth2')
+python del sys.path[-1]
+
+" load commentreader.py
+let pyfile = expand('<sfile>:r') . '.py'
+exe 'pyfile' pyfile
 
 " define functions
 function! commentreader#CRopenbook(path)
@@ -72,5 +72,5 @@ function! commentreader#CRprevious()
 endfunction
 
 function! commentreader#CRsavesession()
-    python CRoperation(vim.eval("bufnr('')"), 'savesession')
+    python CRoperation(vim.eval("bufnr('')"), 'saveSession')
 endfunction

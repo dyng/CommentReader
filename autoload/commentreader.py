@@ -21,20 +21,22 @@ CR_Langdict = {
 
 CR_Instance = {}
 
+# logging setting
+if int(vim.eval("g:creader_debug_mode")):
+    logging.basicConfig(filename=vim.eval("g:creader_debug_file"), level=logging.DEBUG, format='%(asctime)s %(message)s')
+
 # }}}
 
 # Interface {{{
 
 def CRopen(bufnum, cls_name, *argument):
-    if bufnum not in CR_Instance:
-        try:
+    try:
+        if bufnum not in CR_Instance:
             CR_Instance[bufnum] = CommentReader()
-        except Exception as e:
-            vim.command("echom '{0}'".format(e))
-            return
-
-    cls = getattr(sys.modules[__name__], cls_name)
-    CR_Instance[bufnum].openContent(cls, *argument)
+        cls = getattr(sys.modules[__name__], cls_name)
+        CR_Instance[bufnum].openContent(cls, *argument)
+    except Exception as e:
+        vim.command("echom '{0}'".format(e))
 
 def CRoperation(bufnum, op, *argument):
     if bufnum in CR_Instance:
@@ -73,10 +75,6 @@ class CommentReader():
         self.base    = 0
         self.offset  = 0
 
-        # logging setting
-        if self.option['debug_mode']:
-            logging.basicConfig(filename=self.option['debug_file'], level=logging.DEBUG, format='%(asctime)s %(message)s')
-
     # opens
 
     def openContent(self, cls, *argument):
@@ -86,7 +84,7 @@ class CommentReader():
             self.content[type] = cls(self.session.get(type, {}), self.option)
 
         self.head = self.content[type]
-        if not self.head.ready():
+        if argument or not self.head.ready():
             self.head.prepare(*argument)
 
         # View
@@ -383,7 +381,7 @@ class Book(Content):
                 self.path = path
                 self.fp   = open(path, 'r')
             else:
-                vim.command("echo 'Need a file to open'")
+                raise Exception("Need a file to open!")
 
     def ready(self):
         if self.fp:
