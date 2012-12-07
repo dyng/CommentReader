@@ -32,45 +32,45 @@ endif
 
 " define functions
 function! commentreader#CRopenbook(path)
-    python CRopenbook(vim.eval("bufnr('')"), vim.eval('a:path'))
+    python CRopen(vim.eval("bufnr('')"), 'Book', vim.eval('a:path'))
 endfunction
 
 function! commentreader#CRopenweibo(auth_code)
-    python CRopenweibo(vim.eval("bufnr('')"), vim.eval('a:auth_code'))
+    python CRopen(vim.eval("bufnr('')"), 'Weibo', vim.eval('a:auth_code'))
 endfunction
 
 function! commentreader#CRopendouban()
-    python CRopendouban(vim.eval("bufnr('')"))
+    python CRopen(vim.eval("bufnr('')"), 'Douban')
 endfunction
 
 function! commentreader#CRopentwitter(PIN)
-    python CRopentwitter(vim.eval("bufnr('')"), vim.eval('a:PIN'))
-endfunction
-
-function! commentreader#CRhide()
-    python CRhide(vim.eval("bufnr('')"))
-endfunction
-
-function! commentreader#CRforward()
-    python CRforward(vim.eval("bufnr('')"))
-endfunction
-
-function! commentreader#CRbackward()
-    python CRbackward(vim.eval("bufnr('')"))
-endfunction
-
-function! commentreader#CRnext()
-    python CRnext(vim.eval("bufnr('')"))
-endfunction
-
-function! commentreader#CRprevious()
-    python CRprevious(vim.eval("bufnr('')"))
+    python CRopen(vim.eval("bufnr('')"), 'Twitter', vim.eval('a:PIN'))
 endfunction
 
 function! commentreader#CRclose()
     python CRclose(vim.eval("bufnr('')"))
 endfunction
 
+function! commentreader#CRhide()
+    python CRoperation(vim.eval("bufnr('')"), 'hide')
+endfunction
+
+function! commentreader#CRforward()
+    python CRoperation(vim.eval("bufnr('')"), 'forward')
+endfunction
+
+function! commentreader#CRbackward()
+    python CRoperation(vim.eval("bufnr('')"), 'backward')
+endfunction
+
+function! commentreader#CRnext()
+    python CRoperation(vim.eval("bufnr('')"), 'next')
+endfunction
+
+function! commentreader#CRprevious()
+    python CRoperation(vim.eval("bufnr('')"), 'previous')
+endfunction
+
 function! commentreader#CRsavesession()
-    python CRsavesession(vim.eval("bufnr('')"))
+    python CRoperation(vim.eval("bufnr('')"), 'savesession')
 endfunction

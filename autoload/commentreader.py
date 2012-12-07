@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import vim     # actually vim is imported in commentreader.vim
+import sys
 import urllib
 import urllib2
 import urlparse
@@ -24,25 +25,16 @@ CR_Instance = {}
 
 # Interface {{{
 
-def CRopenbook(bufnum, path):
-    CR_Instance.setdefault(bufnum, CommentReader())
-    CR_Instance[bufnum].openContent(Book, path)
+def CRopen(bufnum, cls_name, *argument):
+    if bufnum not in CR_Instance:
+        CR_Instance[bufnum] = CommentReader()
+    cls = getattr(sys.modules[__name__], cls_name)
+    CR_Instance[bufnum].openContent(cls, *argument)
 
-def CRopenweibo(bufnum, auth_code):
-    CR_Instance.setdefault(bufnum, CommentReader())
-    CR_Instance[bufnum].openContent(Weibo, auth_code)
-
-def CRopendouban(bufnum):
-    CR_Instance.setdefault(bufnum, CommentReader())
-    pass
-
-def CRopentwitter(bufnum, PIN):
-    CR_Instance.setdefault(bufnum, CommentReader())
-    CR_Instance[bufnum].openContent(Twitter, PIN)
-
-def CRhide(bufnum):
+def CRoperation(bufnum, op, *argument):
     if bufnum in CR_Instance:
-        CR_Instance[bufnum].hide()
+        instance = CR_Instance[bufnum]
+        getattr(instance, op)(*argument)
     else:
         vim.command("echoe 'No contents have been opened!'")
 
@@ -50,36 +42,6 @@ def CRclose(bufnum):
     if bufnum in CR_Instance:
         CR_Instance[bufnum].hide()
         del CR_Instance[bufnum]
-    else:
-        vim.command("echoe 'No contents have been opened!'")
-
-def CRforward(bufnum):
-    if bufnum in CR_Instance:
-        CR_Instance[bufnum].forward()
-    else:
-        vim.command("echoe 'No contents have been opened!'")
-
-def CRbackward(bufnum):
-    if bufnum in CR_Instance:
-        CR_Instance[bufnum].backward()
-    else:
-        vim.command("echoe 'No contents have been opened!'")
-
-def CRnext(bufnum):
-    if bufnum in CR_Instance:
-        CR_Instance[bufnum].next()
-    else:
-        vim.command("echoe 'No contents have been opened!'")
-
-def CRprevious(bufnum):
-    if bufnum in CR_Instance:
-        CR_Instance[bufnum].previous()
-    else:
-        vim.command("echoe 'No contents have been opened!'")
-
-def CRsavesession(bufnum):
-    if bufnum in CR_Instance:
-        CR_Instance[bufnum].saveSession()
     else:
         vim.command("echoe 'No contents have been opened!'")
 
@@ -149,11 +111,6 @@ class CommentReader():
         except:
             return {}
 
-    # closes
-
-    def close(self):
-        pass
-
     # views
 
     def show(self):
@@ -163,7 +120,7 @@ class CommentReader():
         # get content and render 
         # TODO: need to check the EOF
         raw_content_list = self.head.read(self.base, self.view.getAnchorNum())
-        content_list = self.view.commentize_list(raw_content_list)
+        content_list = self.view.commentizeList(raw_content_list)
         self.view.render(content_list)
 
         # point to first block
@@ -339,7 +296,7 @@ class View():
         output += self.filler * self.lineLen * 2 + self.suffix + "\\n"
         return output
 
-    def commentize_list(self, str_list):
+    def commentizeList(self, str_list):
         return [self.commentize(str) for str in str_list]
 
 class Anchor():
