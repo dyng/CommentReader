@@ -13,6 +13,7 @@ command! -nargs=0                CRbackward    call commentreader#CRbackward()
 command! -nargs=0                CRhide        call commentreader#CRhide()
 command! -nargs=0                CRnext        call commentreader#CRnext()
 command! -nargs=0                CRprevious    call commentreader#CRprevious()
+command! -nargs=0                CRrefresh     call commentreader#CRrefresh()
 command! -nargs=0                CRclose       call commentreader#CRclose()
 command! -nargs=0                CRsave        call commentreader#CRsavesession()
 

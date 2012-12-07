@@ -342,17 +342,17 @@ class Content():
         items = self.getItem(index, amount)
         return [i.content() for i in items]
 
-    def getItem(self):
-        pass
-
-    def getItem(self):
+    def prepare(self):
         pass
 
     def ready(self):
         pass
 
-    def prepare(self):
+    def getItem(self):
         pass
+
+    def refresh(self):
+        self.items = []
 
     def saveSession(self):
         pass
@@ -508,9 +508,6 @@ class Weibo(Content):
         while index + amount > len(self.items):
             self.pullTweets()
         return self.items[index:index+amount]
-
-    def refresh(self):
-        self.items = []
 
     def prepare(self, auth_code=None):
         if self.ready():

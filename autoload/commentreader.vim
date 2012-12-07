@@ -71,6 +71,10 @@ function! commentreader#CRprevious()
     python CRoperation(vim.eval("bufnr('')"), 'previous')
 endfunction
 
+function! commentreader#CRrefresh()
+    python CRoperation(vim.eval("bufnr('')"), 'refresh')
+endfunction
+
 function! commentreader#CRsavesession()
     python CRoperation(vim.eval("bufnr('')"), 'saveSession')
 endfunction
