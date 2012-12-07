@@ -8,8 +8,8 @@ import json
 import oauth2  # actually oauth2 is imported in commentreader.vim
 import logging
 
-# Initialization
-# global variables
+# global variables {{{
+
 CR_Langdict = {
             'python':  { 'prefix':  '#', 'filler':   '#', 'suffix':   '#', 'defs':   r'^def' },
             'perl':    { 'prefix':  '#', 'filler':   '#', 'suffix':   '#', 'defs':   r'^sub' },
@@ -20,16 +20,17 @@ CR_Langdict = {
 
 CR_Instance = {}
 
+# }}}
 
-# Interface
+# Interface {{{
 
 def CRopenbook(bufnum, path):
     CR_Instance.setdefault(bufnum, CommentReader())
-    CR_Instance[bufnum].openBook(path)
+    CR_Instance[bufnum].openContent(Book, path)
 
 def CRopenweibo(bufnum, auth_code):
     CR_Instance.setdefault(bufnum, CommentReader())
-    CR_Instance[bufnum].openWeibo(auth_code)
+    CR_Instance[bufnum].openContent(Weibo, auth_code)
 
 def CRopendouban(bufnum):
     CR_Instance.setdefault(bufnum, CommentReader())
@@ -37,7 +38,7 @@ def CRopendouban(bufnum):
 
 def CRopentwitter(bufnum, PIN):
     CR_Instance.setdefault(bufnum, CommentReader())
-    CR_Instance[bufnum].openTwitter(PIN)
+    CR_Instance[bufnum].openContent(Twitter, PIN)
 
 def CRhide(bufnum):
     if bufnum in CR_Instance:
@@ -82,7 +83,9 @@ def CRsavesession(bufnum):
     else:
         vim.command("echoe 'No contents have been opened!'")
 
-# Main
+# }}}
+
+# Main Class {{{
 
 class CommentReader():
     def __init__(self):
@@ -104,6 +107,29 @@ class CommentReader():
         if self.option['debug_mode']:
             logging.basicConfig(filename=self.option['debug_file'], level=logging.DEBUG, format='%(asctime)s %(message)s')
 
+    # opens
+
+    def openContent(self, cls, *argument):
+        # Content
+        type = cls.__name__
+        if type not in self.content:
+            self.content[type] = cls(self.session.get(type, {}), self.option)
+
+        self.head = self.content[type]
+        if not self.head.ready():
+            self.head.prepare(*argument)
+
+        # View
+        if self.head.ready():
+            self.view.refreshAnchor()
+            self.show()
+
+    def refresh(self):
+        self.head.refresh()
+        self.base   = 0
+        self.offset = 0
+        self.show()
+
     # session
 
     def saveSession(self):
@@ -122,52 +148,6 @@ class CommentReader():
             return json.load(fp)
         except:
             return {}
-
-    # opens
-
-    def openBook(self, path):
-        self.content['Book'] = Book(path, self.session.get('Book', {}), self.option)
-        self.head = self.content['Book']
-        self.view.refreshAnchor()
-        self.show()
-
-    def openWeibo(self, auth_code):
-        # Content
-        if 'Weibo' not in self.content:
-            self.content['Weibo'] = Weibo(self.session.get('Weibo', {}), self.option)
-        self.head = self.content['Weibo']
-
-        if auth_code:
-            self.head.reqAccessToken(auth_code)
-
-        # View
-        if self.head.ready():
-            self.view.refreshAnchor()
-            self.show()
-        else:
-            self.head.reqAuthPage()
-
-    def openTwitter(self, PIN):
-        # Content
-        if 'Twitter' not in self.content:
-            self.content['Twitter'] = Twitter(self.session.get('Twitter', {}), self.option)
-        self.head = self.content['Twitter']
-
-        if PIN:
-            self.head.reqAccessToken(PIN)
-
-        # View
-        if self.head.ready():
-            self.view.refreshAnchor()
-            self.show()
-        else:
-            self.head.reqAuthPage()
-
-    def refresh(self):
-        self.head.refresh()
-        self.base   = 0
-        self.offset = 0
-        self.show()
 
     # closes
 
@@ -246,37 +226,9 @@ class CommentReader():
         else:
             self.seek(self.base + offset)
 
+# }}}
 
-class Anchor():
-    def __init__(self, rel_posi, pre_anchor):
-        self.rel_posi   = rel_posi
-        self.abs_posi   = -1
-        self.size       = 0
-        self.pre_anchor = pre_anchor
-
-    def evalAbsPosition(self):
-        if self.pre_anchor is None:
-            self.abs_posi = self.rel_posi
-            return self.abs_posi
-        else:
-            self.abs_posi = self.pre_anchor.evalAbsPosition() + self.pre_anchor.size + self.rel_posi
-            return self.abs_posi
-
-    # Warning: if you need EXACT position, call evalAbsPosition instead of this
-    def getAbsPosition(self):
-        if self.abs_posi != -1:
-            return self.abs_posi
-        else:
-            return self.evalAbsPosition()
-
-    def bind(self, str):
-        self.abs_posi = self.evalAbsPosition()
-        self.size = str.count("\\n")
-
-    def unbind(self):
-        self.abs_posi = -1
-        self.size = 0
-
+# View Classes {{{
 
 class View():
     def __init__(self, option):
@@ -378,7 +330,6 @@ class View():
         position = anchor.getAbsPosition() + (anchor.size - 1)//2
         vim.command("normal {0}z.".format(position))
 
-
     # content formatter
 
     def commentize(self, str):
@@ -391,6 +342,39 @@ class View():
     def commentize_list(self, str_list):
         return [self.commentize(str) for str in str_list]
 
+class Anchor():
+    def __init__(self, rel_posi, pre_anchor):
+        self.rel_posi   = rel_posi
+        self.abs_posi   = -1
+        self.size       = 0
+        self.pre_anchor = pre_anchor
+
+    def evalAbsPosition(self):
+        if self.pre_anchor is None:
+            self.abs_posi = self.rel_posi
+            return self.abs_posi
+        else:
+            self.abs_posi = self.pre_anchor.evalAbsPosition() + self.pre_anchor.size + self.rel_posi
+            return self.abs_posi
+
+    # Warning: if you need EXACT position, call evalAbsPosition instead of this
+    def getAbsPosition(self):
+        if self.abs_posi != -1:
+            return self.abs_posi
+        else:
+            return self.evalAbsPosition()
+
+    def bind(self, str):
+        self.abs_posi = self.evalAbsPosition()
+        self.size = str.count("\\n")
+
+    def unbind(self):
+        self.abs_posi = -1
+        self.size = 0
+
+# }}}
+
+# Content Classes {{{
 
 class Content():
     def read(self, index, amount):
@@ -400,24 +384,49 @@ class Content():
     def getItem(self):
         pass
 
-    def refresh(self):
+    def getItem(self):
         pass
 
     def ready(self):
+        pass
+
+    def prepare(self):
+        pass
+
+    def saveSession(self):
+        pass
+
+    def loadSession(self):
         pass
 
 class Item():
     def Content(self):
         pass
 
-# Content: Book
+# Content: Book {{{
 
 class Book(Content):
-    def __init__(self, path, session, option):
-        self.fp      = open(path, 'r')
+    def __init__(self, session, option):
         self.items   = []
         self.lineLen = option['line_len']
         self.lineNum = option['line_num']
+        (self.path, self.fp) = self.loadSession(session)
+
+    def prepare(self, path=None):
+        if self.ready():
+            return
+        else:
+            if path:
+                self.path = path
+                self.fp   = open(path, 'r')
+            else:
+                vim.command("echo 'Need a file to open'")
+
+    def ready(self):
+        if self.fp:
+            return True
+        else:
+            return False
 
     def getItem(self, index, amount):
         output = []
@@ -434,6 +443,14 @@ class Book(Content):
                 self.items.append(item)
                 output.append(item)
         return output
+
+    def saveSession(self):
+        return {'path': self.path}
+
+    def loadSession(self, session):
+        path = session.get('path', None)
+        fp = open(path, 'r') if path else None
+        return path, fp
 
 class Page(Item):
     def __init__(self, fp, option):
@@ -458,7 +475,9 @@ class Page(Item):
     def content(self):
         return self.string
 
-# Content: Weibo
+# }}}
+
+# Content: Weibo {{{
 
 class Weibo(Content):
     def __init__(self, session, option):
@@ -532,6 +551,15 @@ class Weibo(Content):
     def refresh(self):
         self.items = []
 
+    def prepare(self, auth_code=None):
+        if self.ready():
+            return
+        else:
+            if auth_code:
+                self.reqAccessToken(auth_code)
+            else:
+                self.reqAuthPage()
+
     def ready(self):
         if self.token_info.get('access_token', ''):
             return True
@@ -542,10 +570,12 @@ class Weibo(Content):
         return self.token_info 
 
     def loadSession(self, token_info):
-        # TODO:validate if token expired
         return token_info
 
-# Content: Twitter
+# }}}
+
+# Content: Twitter {{{
+
 class Twitter(Content):
     def __init__(self, session, option):
         # instance variables
@@ -613,6 +643,15 @@ class Twitter(Content):
 
         return self.items
 
+    def prepare(self, PIN=None):
+        if self.ready():
+            return
+        else:
+            if PIN:
+                self.reqAccessToken(PIN)
+            else:
+                self.reqAuthPage()
+
     def ready(self):
         if self.access_token.get('oauth_token', ''):
             return True
@@ -639,6 +678,14 @@ class Tweet(Item):
     def content(self):
         return self.author + ": " + self.text + "\n"
 
-# Content: Douban
+# }}}
 
-# Content: Facebook
+# Content: Douban {{{
+# }}}
+
+# Content: Facebook {{{
+# }}}
+
+# }}}
+
+# vim: set foldmarker={{{,}}} foldlevel=0 foldmethod=marker spell:
