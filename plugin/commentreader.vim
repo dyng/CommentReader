@@ -16,9 +16,3 @@ command! -nargs=0                CRprevious    call commentreader#CRprevious()
 command! -nargs=0                CRrefresh     call commentreader#CRrefresh()
 command! -nargs=0                CRclose       call commentreader#CRclose()
 command! -nargs=0                CRsave        call commentreader#CRsavesession()
-
-" define maps
-nnoremap <silent> <leader>d :CRforward<CR>
-nnoremap <silent> <leader>a :CRbackward<CR>
-nnoremap <silent> <leader>w :CRprevious<CR>
-nnoremap <silent> <leader>s :CRnext<CR>

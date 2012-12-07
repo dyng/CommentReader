@@ -74,6 +74,7 @@ class CommentReader():
         self.view    = View(self.option)
         self.base    = 0
         self.offset  = 0
+        self.mapped  = False
 
     # opens
 
@@ -91,6 +92,8 @@ class CommentReader():
         if self.head.ready():
             self.view.refreshAnchor()
             self.show()
+            if not self.mapped:
+                self.changeMap()
 
     def refresh(self):
         self.head.refresh()
@@ -133,10 +136,30 @@ class CommentReader():
         self.first()
 
     def hide(self):
-        # save and restore cursor position
-        (line_bak, col_bak) = (vim.eval("line('.')"), vim.eval("col('.')"))
         self.view.clear()
-        vim.command("call cursor('{0}', '{1}')".format(line_bak, col_bak))
+        if self.mapped:
+            self.restoreMap()
+
+    def changeMap(self):
+        self.map_bak = {}
+        for key in "hjklrq":
+            self.map_bak[key] = vim.eval("maparg('{0}','n')".format(key))
+
+        vim.command("nnoremap <buffer><silent> l :CRforward<CR>")
+        vim.command("nnoremap <buffer><silent> h :CRbackward<CR>")
+        vim.command("nnoremap <buffer><silent> k :CRprevious<CR>")
+        vim.command("nnoremap <buffer><silent> j :CRnext<CR>")
+        vim.command("nnoremap <buffer><silent> r :CRrefresh<CR>")
+        vim.command("nnoremap <buffer><silent> q :CRhide<CR>")
+
+        self.mapped = True
+
+    def restoreMap(self):
+        for key in self.map_bak:
+            vim.command("nunmap <buffer> {0}".format(key))
+            if self.map_bak[key]: vim.command("nnoremap <buffer> {0} {1}".format(key, self.map_bak[key]))
+
+        self.mapped = False
 
     # cursor moves
 
