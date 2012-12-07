@@ -14,7 +14,7 @@ if !exists('g:creader_debug_file')
 endif
 if !exists('g:creader_session_file')
     " TODO: default value
-    let g:creader_session_file = $HOME.'/.vim-infos/vim_creader_session'
+    let g:creader_session_file = $HOME.'/.vim_creader_session'
 endif
 
 " import vim
