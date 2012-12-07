@@ -27,23 +27,31 @@ CR_Instance = {}
 
 def CRopen(bufnum, cls_name, *argument):
     if bufnum not in CR_Instance:
-        CR_Instance[bufnum] = CommentReader()
+        try:
+            CR_Instance[bufnum] = CommentReader()
+        except Exception as e:
+            vim.command("echom '{0}'".format(e))
+            return
+
     cls = getattr(sys.modules[__name__], cls_name)
     CR_Instance[bufnum].openContent(cls, *argument)
 
 def CRoperation(bufnum, op, *argument):
     if bufnum in CR_Instance:
         instance = CR_Instance[bufnum]
-        getattr(instance, op)(*argument)
+        try:
+            getattr(instance, op)(*argument)
+        except Exception as e:
+            vim.command("echom '{0}'".format(e))
     else:
-        vim.command("echoe 'No contents have been opened!'")
+        vim.command("echom 'No contents have been opened!'")
 
 def CRclose(bufnum):
     if bufnum in CR_Instance:
         CR_Instance[bufnum].hide()
         del CR_Instance[bufnum]
     else:
-        vim.command("echoe 'No contents have been opened!'")
+        vim.command("echom 'No contents have been opened!'")
 
 # }}}
 
@@ -200,8 +208,7 @@ class View():
             self.filler = CR_Langdict[filetype]['filler']
             self.suffix = CR_Langdict[filetype]['suffix']
         else:
-            vim.command("echom 'Sorry, this language is not supported.'")
-            return
+            raise Exception('Sorry, this language is not supported.')
 
         # define declaration reserved word
         self.defs = CR_Langdict[filetype]['defs']
@@ -211,8 +218,7 @@ class View():
 
         self.refreshAnchor()
         if self.getAnchorNum() == 0:
-            vim.command("echom 'Sorry, there is no place for comment.'")
-            return
+            raise Exception('Sorry, there is no place for comment.')
 
     # anchors
 
