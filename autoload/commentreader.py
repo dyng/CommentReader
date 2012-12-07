@@ -12,12 +12,12 @@ import logging
 # global variables {{{
 
 CR_Langdict = {
-            'python':      { 'prefix':  '#',  'filler':  '#', 'suffix':  '#',  'defs':  r'^def' },
-            'perl':        { 'prefix':  '#',  'filler':  '#', 'suffix':  '#',  'defs':  r'^sub' },
-            'vim':         { 'prefix':  '"',  'filler':  '"', 'suffix':  '"',  'defs':  r'^function' },
-            'javascript':  { 'prefix':  '//', 'filler':  '/', 'suffix':  '//', 'defs':  r'^function' },
-            'c':           { 'prefix':  '/*', 'filler':  '*', 'suffix':  '*/', 'defs':  r''},
-            'cpp':         { 'prefix':  '//', 'filler':  '/', 'suffix':  '//', 'defs':  r''},
+            'python':      { 'prefix':  '#',  'filler':  '#',  'suffix':  '#',  'defs':  r'^def' },
+            'perl':        { 'prefix':  '#',  'filler':  '#',  'suffix':  '#',  'defs':  r'^sub' },
+            'vim':         { 'prefix':  '"',  'filler':  '"',  'suffix':  '"',  'defs':  r'^function' },
+            'javascript':  { 'prefix':  '//', 'filler':  '//', 'suffix':  '//', 'defs':  r'^function' },
+            'c':           { 'prefix':  '/*', 'filler':  '*',  'suffix':  '*/', 'defs':  r''},
+            'cpp':         { 'prefix':  '//', 'filler':  '//', 'suffix':  '//', 'defs':  r''},
            }
 
 CR_Instance = {}
