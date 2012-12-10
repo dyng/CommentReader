@@ -218,7 +218,7 @@ class CommentReader():
         vim.command("nnoremap <buffer><silent> k :CRprevious<CR>")
         vim.command("nnoremap <buffer><silent> j :CRnext<CR>")
         vim.command("nnoremap <buffer><silent> r :CRrefresh<CR>")
-        vim.command("nnoremap <buffer><silent> q :CRclose<CR>")
+        vim.command("nnoremap <buffer><silent> q :CRhide<CR>")
 
     def _restoreMap(self):
         for key in self.map_bak:

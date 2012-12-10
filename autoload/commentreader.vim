@@ -36,6 +36,14 @@ function! commentreader#CRtoggle()
     python CRoperation(vim.eval("bufnr('')"), 'toggle')
 endfunction
 
+function! commentreader#CRshow()
+    python CRoperation(vim.eval("bufnr('')"), 'show')
+endfunction
+
+function! commentreader#CRhide()
+    python CRoperation(vim.eval("bufnr('')"), 'hide')
+endfunction
+
 function! commentreader#CRforward()
     python CRoperation(vim.eval("bufnr('')"), 'forward')
 endfunction
