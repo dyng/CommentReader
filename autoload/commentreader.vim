@@ -1,22 +1,3 @@
-" parser user-define options
-if !exists('g:creader_chars_per_line')
-    let g:creader_chars_per_line = 20
-endif
-if !exists('g:creader_lines_per_block')
-    let g:creader_lines_per_block = 5
-endif
-if !exists('g:creader_debug_mode')
-    let g:creader_debug_mode = 1
-endif
-if !exists('g:creader_debug_file')
-    " TODO: default value
-    let g:creader_debug_file = '/var/tmp/creader.log'
-endif
-if !exists('g:creader_session_file')
-    " TODO: default value
-    let g:creader_session_file = $HOME.'/.vim_creader_session'
-endif
-
 " import vim
 python import vim
 
