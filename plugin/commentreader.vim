@@ -28,16 +28,16 @@ command! -nargs=? -complete=file CRopenbook    call commentreader#CRopenbook('<a
 command! -nargs=?                CRopenweibo   call commentreader#CRopenweibo('<args>')
 command! -nargs=?                CRopentwitter call commentreader#CRopentwitter('<args>')
 command! -nargs=?                CRopendouban  call commentreader#CRopendouban('<args>')
-command! -nargs=0                CRforward     call commentreader#CRforward()
-command! -nargs=0                CRbackward    call commentreader#CRbackward()
-command! -nargs=0                CRhide        call commentreader#CRhide()
-command! -nargs=0                CRnext        call commentreader#CRnext()
-command! -nargs=0                CRprevious    call commentreader#CRprevious()
+command! -nargs=0                CRtoggle      call commentreader#CRtoggle()
 command! -nargs=0                CRrefresh     call commentreader#CRrefresh()
 command! -nargs=0                CRclose       call commentreader#CRclose()
+command! -nargs=0                CRforward     call commentreader#CRforward()
+command! -nargs=0                CRbackward    call commentreader#CRbackward()
+command! -nargs=0                CRnext        call commentreader#CRnext()
+command! -nargs=0                CRprevious    call commentreader#CRprevious()
 command! -nargs=0                CRsave        call commentreader#CRsavesession()
 
-" autocommands
+" define autocommands
 augroup CommentReader
     autocmd!
     if g:creader_auto_save == 1

@@ -132,6 +132,12 @@ class CommentReader():
 
     # views
 
+    def toggle(self):
+        if self.on_display:
+            self.hide()
+        else:
+            self.show()
+
     def show(self):
         # clear first
         self.view.clear()
@@ -210,7 +216,7 @@ class CommentReader():
         vim.command("nnoremap <buffer><silent> k :CRprevious<CR>")
         vim.command("nnoremap <buffer><silent> j :CRnext<CR>")
         vim.command("nnoremap <buffer><silent> r :CRrefresh<CR>")
-        vim.command("nnoremap <buffer><silent> q :CRhide<CR>")
+        vim.command("nnoremap <buffer><silent> q :CRclose<CR>")
 
     def _restoreMap(self):
         for key in self.map_bak:
@@ -247,10 +253,7 @@ class View():
 
         # define anchors
         self.anchors = []
-
         self.refreshAnchor()
-        if self.getAnchorNum() == 0:
-            raise Exception('Sorry, there is no place for comment.')
 
     # anchors
 
@@ -278,6 +281,9 @@ class View():
             pre_anchor = new_anchor
         # restore cursor position
         vim.command("call cursor('{0}', '{1}')".format(line_bak, col_bak))
+
+        if len(self.anchors) == 0:
+            raise Exception('Sorry, there is no place for comment.')
 
     # show or hide contents
 
