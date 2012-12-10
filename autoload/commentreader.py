@@ -89,9 +89,12 @@ class CommentReader():
         if type not in self.content:
             self.content[type] = cls(self.session.get(type, {}), self.option)
 
-        self.head = self.content[type]
+        # Initialization
+        self.head   = self.content[type]
         if argument or not self.head.ready():
             self.head.prepare(*argument)
+        self.base   = 0
+        self.offset = 0
 
         # View
         if self.head.ready():
