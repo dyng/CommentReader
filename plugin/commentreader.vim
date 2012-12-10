@@ -11,10 +11,10 @@ if !exists('g:creader_lines_per_block')
     let g:creader_lines_per_block = 5
 endif
 if !exists('g:creader_debug_mode')
-    let g:creader_debug_mode = 1
+    let g:creader_debug_mode = 0
 endif
-if !exists('g:creader_debug_file')
-    let g:creader_debug_file = '/var/tmp/creader.log'
+if !exists('g:creader_log_file')
+    let g:creader_log_file = '/var/tmp/creader.log'
 endif
 if !exists('g:creader_session_file')
     let g:creader_session_file = $HOME.'/.vim_creader_session'

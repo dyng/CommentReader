@@ -24,7 +24,9 @@ CR_Instance = {}
 
 # logging setting
 if int(vim.eval("g:creader_debug_mode")):
-    logging.basicConfig(filename=vim.eval("g:creader_debug_file"), level=logging.DEBUG, format='%(asctime)s %(message)s')
+    logging.basicConfig(filename=vim.eval("g:creader_log_file"), level=logging.DEBUG, format='%(asctime)s %(message)s')
+else:
+    logging.basicConfig(filename=vim.eval("g:creader_log_file"), level=logging.WARNING, format='%(asctime)s %(message)s')
 
 # }}}
 
@@ -69,7 +71,7 @@ class CommentReader():
                 'line_num': int(vim.eval('g:creader_chars_per_line')),
                 'session_file': vim.eval('g:creader_session_file'),
                 'debug_mode': int(vim.eval('g:creader_debug_mode')),
-                'debug_file': vim.eval('g:creader_debug_file'),
+                'log_file': vim.eval('g:creader_log_file'),
                 }
 
         self.head       = None # the pointer to current content
