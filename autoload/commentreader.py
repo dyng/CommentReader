@@ -69,13 +69,15 @@ class CommentReader():
                 'debug_mode': int(vim.eval('g:creader_debug_mode')),
                 'debug_file': vim.eval('g:creader_debug_file'),
                 }
-        self.head    = None # the pointer to current content
-        self.content = {}
-        self.session = self.loadSession()
-        self.view    = View(self.option)
-        self.base    = 0
-        self.offset  = 0
-        self.mapped  = False
+
+        self.head       = None # the pointer to current content
+        self.content    = {}   # self.content is a dict of Content instances. example: self.content = { 'Twitter': Twitter(), 'Weibo': Weibo(), ... }
+        self.session    = self.loadSession()
+        self.view       = View(self.option)
+
+        self.base       = 0
+        self.offset     = 0
+        self.on_display = False
 
     # opens
 
@@ -93,14 +95,16 @@ class CommentReader():
         if self.head.ready():
             self.view.refreshAnchor()
             self.show()
-            if not self.mapped:
-                self.changeMap()
+            self.first()
 
     def refresh(self):
         self.head.refresh()
+
         self.base   = 0
         self.offset = 0
+
         self.show()
+        self.first()
 
     # session
 
@@ -133,34 +137,18 @@ class CommentReader():
         content_list = self.view.commentizeList(raw_content_list)
         self.view.render(content_list)
 
-        # point to first block
-        self.first()
+        # change maps if needed
+        if not self.on_display: self._changeMap()
+
+        self.on_display = True
 
     def hide(self):
         self.view.clear()
-        if self.mapped:
-            self.restoreMap()
 
-    def changeMap(self):
-        self.map_bak = {}
-        for key in "hjklrq":
-            self.map_bak[key] = vim.eval("maparg('{0}','n')".format(key))
+        # restore maps if needed
+        if self.on_display: self._restoreMap()
 
-        vim.command("nnoremap <buffer><silent> l :CRforward<CR>")
-        vim.command("nnoremap <buffer><silent> h :CRbackward<CR>")
-        vim.command("nnoremap <buffer><silent> k :CRprevious<CR>")
-        vim.command("nnoremap <buffer><silent> j :CRnext<CR>")
-        vim.command("nnoremap <buffer><silent> r :CRrefresh<CR>")
-        vim.command("nnoremap <buffer><silent> q :CRhide<CR>")
-
-        self.mapped = True
-
-    def restoreMap(self):
-        for key in self.map_bak:
-            vim.command("nunmap <buffer> {0}".format(key))
-            if self.map_bak[key]: vim.command("nnoremap <buffer> {0} {1}".format(key, self.map_bak[key]))
-
-        self.mapped = False
+        self.on_display = False
 
     # cursor moves
 
@@ -172,7 +160,7 @@ class CommentReader():
         if seek is None:
             self.first()
         else:
-            self.seek(seek)
+            self._seek(seek)
 
     def backward(self, seek=None):
         if self.base == 0:
@@ -185,33 +173,50 @@ class CommentReader():
         if seek is None:
             self.first()
         else:
-            self.seek(seek)
-
-    # index is the current node's index in all node's array
-    # index = self.base + self.offset
-    def seek(self, index):
-        self.offset = (index - self.base) % self.view.getAnchorNum()
-        self.view.pointTo(self.offset)
+            self._seek(seek)
 
     def first(self):
-        self.seek(self.base)
+        self._seek(self.base)
 
     def last(self):
-        self.seek(self.base + self.view.getAnchorNum - 1)
+        self._seek(self.base + self.view.getAnchorNum - 1)
 
     def next(self):
         offset = self.offset + 1
         if offset >= self.view.getAnchorNum():
             self.forward(self.base + offset)
         else:
-            self.seek(self.base + offset)
+            self._seek(self.base + offset)
 
     def previous(self):
         offset = self.offset - 1
         if offset < 0:
             self.backward(self.base + offset)
         else:
-            self.seek(self.base + offset)
+            self._seek(self.base + offset)
+
+    def _changeMap(self):
+        self.map_bak = {}
+        for key in "hjklrq":
+            self.map_bak[key] = vim.eval("maparg('{0}','n')".format(key))
+
+        vim.command("nnoremap <buffer><silent> l :CRforward<CR>")
+        vim.command("nnoremap <buffer><silent> h :CRbackward<CR>")
+        vim.command("nnoremap <buffer><silent> k :CRprevious<CR>")
+        vim.command("nnoremap <buffer><silent> j :CRnext<CR>")
+        vim.command("nnoremap <buffer><silent> r :CRrefresh<CR>")
+        vim.command("nnoremap <buffer><silent> q :CRhide<CR>")
+
+    def _restoreMap(self):
+        for key in self.map_bak:
+            vim.command("nunmap <buffer> {0}".format(key))
+            if self.map_bak[key]: vim.command("nnoremap <buffer> {0} {1}".format(key, self.map_bak[key]))
+
+    # index is the current node's index in all node's array
+    # index = self.base + self.offset
+    def _seek(self, index):
+        self.offset = (index - self.base) % self.view.getAnchorNum()
+        self.view.pointTo(self.offset)
 
 # }}}
 
@@ -504,7 +509,7 @@ class Weibo(Content):
         self.token_info = token_info
         return token_info
 
-    def pullTweets(self):
+    def _pullTweets(self):
         url = 'https://api.weibo.com/2/statuses/home_timeline.json'
         params = {
                 'access_token': self.token_info['access_token'],
@@ -530,7 +535,7 @@ class Weibo(Content):
 
     def getItem(self, index, amount):
         while index + amount > len(self.items):
-            self.pullTweets()
+            self._pullTweets()
         return self.items[index:index+amount]
 
     def prepare(self, auth_code=None):
@@ -606,7 +611,7 @@ class Twitter(Content):
         token = oauth2.Token(self.access_token['oauth_token'], self.access_token['oauth_token_secret'])
         self.client = oauth2.Client(self.consumer, token)
 
-    def pullTweets(self):
+    def _pullTweets(self):
         url = 'http://api.twitter.com/1.1/statuses/home_timeline.json'
         params = {
                 'count': 20,
@@ -642,7 +647,7 @@ class Twitter(Content):
 
     def getItem(self, index, amount):
         while index + amount > len(self.items):
-            self.pullTweets()
+            self._pullTweets()
         return self.items[index:index+amount]
 
     def saveSession(self):
