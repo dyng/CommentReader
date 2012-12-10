@@ -37,6 +37,7 @@ def CRopen(bufnum, cls_name, *argument):
         cls = getattr(sys.modules[__name__], cls_name)
         CR_Instance[bufnum].openContent(cls, *argument)
     except Exception as e:
+        logging.exception('')
         vim.command("echom '{0}'".format(e))
 
 def CRoperation(bufnum, op, *argument):
@@ -45,6 +46,7 @@ def CRoperation(bufnum, op, *argument):
         try:
             getattr(instance, op)(*argument)
         except Exception as e:
+            logging.exception('')
             vim.command("echom '{0}'".format(e))
     else:
         vim.command("echom 'No contents have been opened!'")
@@ -260,7 +262,7 @@ class View():
         self.anchors = []
 
         # save original cursor positon
-        (line_bak, col_bak) = (vim.eval("line('.')"), vim.eval("col('.')"))
+        (line_bak, col_bak) = (int(vim.eval("line('.')")), int(vim.eval("col('.')")))
         vim.command("call cursor('1', '1')")
         pre_anchor = None
         pre_posi = 0
@@ -277,6 +279,8 @@ class View():
     # show or hide contents
 
     def render(self, string_list):
+        (line_bak, col_bak) = (int(vim.eval("line('.')")), int(vim.eval("col('.')")))
+
         for (anchor, content) in zip(self.anchors, string_list):
             # bind content and anchor
             anchor.bind(content)
@@ -296,7 +300,12 @@ class View():
             vim.command(command)
             vim.command('let &modified={0}'.format(modified_bak))
 
+        vim.command("call cursor('{0}', '{1}')".format(self.o2cPosition(line_bak), col_bak))
+
     def clear(self):
+        (line_bak, col_bak) = (int(vim.eval("line('.')")), int(vim.eval("col('.')")))
+        line_num = self.c2oPosition(line_bak) # c2oPosition should be called before anchor.unbind
+
         for anchor in self.anchors:
             if anchor.size > 0:
                 # clear content from buffer
@@ -313,12 +322,31 @@ class View():
             # unbind content and anchor
             anchor.unbind()
 
+        vim.command("call cursor('{0}', '{1}')".format(line_num, col_bak))
+
     # cursor move
 
-    def pointTo(self, offset):
-        anchor = self.anchors[offset]
+    def pointTo(self, n):
+        anchor = self.anchors[n]
         position = anchor.getAbsPosition() + (anchor.size - 1)//2
         vim.command("normal {0}z.".format(position))
+
+    def o2cPosition(self, o_line_num):
+        offset = 0
+        for anchor in self.anchors:
+            if anchor.getAbsPosition() > o_line_num: break
+            offset += anchor.size
+        return o_line_num + offset
+
+    def c2oPosition(self, c_line_num):
+        offset = 0
+        for anchor in self.anchors:
+            if anchor.getAbsPosition() > c_line_num: break
+            if c_line_num < anchor.getAbsPosition() + anchor.size:
+                offset += c_line_num - anchor.getAbsPosition() + 1
+            else:
+                offset += anchor.size
+        return c_line_num - offset
 
     # content formatter
 
@@ -347,7 +375,7 @@ class Anchor():
             self.abs_posi = self.pre_anchor.evalAbsPosition() + self.pre_anchor.size + self.rel_posi
             return self.abs_posi
 
-    # Warning: if you need EXACT position, call evalAbsPosition instead of this
+    # Warning: if you need EXACT position, call evalAbsPosition instead
     def getAbsPosition(self):
         if self.abs_posi != -1:
             return self.abs_posi
