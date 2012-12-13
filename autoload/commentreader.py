@@ -67,8 +67,8 @@ def CRclose(bufnum):
 class CommentReader():
     def __init__(self):
         self.option  = {
-                'line_len': int(vim.eval('g:creader_lines_per_block')),
-                'line_num': int(vim.eval('g:creader_chars_per_line')),
+                'line_num': int(vim.eval('g:creader_lines_per_block')),
+                'line_len': int(vim.eval('g:creader_chars_per_line')),
                 'session_file': vim.eval('g:creader_session_file'),
                 'debug_mode': int(vim.eval('g:creader_debug_mode')),
                 'log_file': vim.eval('g:creader_log_file'),
@@ -488,16 +488,16 @@ class Page(Item):
 
         content = []
         line_loaded = 0
-        while line_loaded <= self.lineLen:
+        while line_loaded <= self.lineNum:
             line = fp.readline().decode('utf-8')
             if not line: break
             line = line.rstrip('\r\n')
             if len(line) == 0: line = " "
             p = 0
             while p < len(line):
-                content.append(line[p:p+self.lineNum])
+                content.append(line[p:p+self.lineLen])
                 line_loaded += 1
-                p += self.lineNum
+                p += self.lineLen
 
         self.string = "\n".join(content)
 
@@ -698,7 +698,7 @@ class Twitter(Content):
 class Tweet(Item):
     def __init__(self, raw_tweet):
         self.id = long(raw_tweet['id'])
-        self.author = raw_tweet['user']['screen_name']
+        self.author = raw_tweet['user']['name']
         self.text = raw_tweet['text']
 
     def content(self):
