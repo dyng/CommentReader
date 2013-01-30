@@ -23,13 +23,13 @@ Twitter
 -------------
 1. Open a source file and run
 
-    :CRopentwitter
+        :CRopentwitter
 
 2. If it is the first time you run the command, it will guide you to authorize it. Open the url stored in `+` register in your browser. If you are using gVim, you can paste it by `Ctrl + V`(Windows) or `Commands + V`(Mac) as usual.
 
 3. It should be the twitter authorization page containing a PIN code. Copy it and run
 
-    :CRopentwitter <your PIN code>
+        :CRopentwitter <your PIN code>
 
 4. If everything goes right, the tweets should appear as comments now!
 
@@ -37,7 +37,7 @@ Weibo
 -------------
 1. Open a source file and run
 
-    :CRopenweibo
+        :CRopenweibo
 
 2. It will require your authorization at the first time you run it. Open the url in `+` register the same as above.
 
@@ -45,7 +45,7 @@ Weibo
 
 4. run
 
-    :CRopenweibo <your code>
+        :CRopenweibo <your code>
     
 and enjoy!
 
@@ -53,11 +53,11 @@ Novel
 -------------
 1. Open a source file and run
 
-    :CRopenbook
+        :CRopenbook
 
 2. If you haven't opened a book ever, it will require you to give the path to the command as argument. Like
 
-    :CRopenbook <path to your file>
+        :CRopenbook <path to your file>
 
 3. Up to now, CommentReader can read plain text file in *UTF-8* encoding *only*.
 
@@ -75,7 +75,7 @@ Maps
 
 There is also a useful command `CRtoggle` you can map to the key as you like, `<F5>` for example.
 
-    :nnoremap <F5> :CRtoggle<CR>
+        :nnoremap <F5> :CRtoggle<CR>
 
 Session
 -------------
