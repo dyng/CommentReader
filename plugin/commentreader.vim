@@ -27,7 +27,6 @@ endif
 command! -nargs=? -complete=file CRopenbook    call commentreader#CRopenbook('<args>')
 command! -nargs=?                CRopenweibo   call commentreader#CRopenweibo('<args>')
 command! -nargs=?                CRopentwitter call commentreader#CRopentwitter('<args>')
-command! -nargs=?                CRopendouban  call commentreader#CRopendouban('<args>')
 command! -nargs=0                CRtoggle      call commentreader#CRtoggle()
 command! -nargs=0                CRrefresh     call commentreader#CRrefresh()
 command! -nargs=0                CRshow        call commentreader#CRshow()

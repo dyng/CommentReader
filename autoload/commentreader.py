@@ -408,7 +408,7 @@ class Anchor():
 class Content():
     def read(self, index, amount):
         items = self.getItem(index, amount)
-        return [i.content() for i in items]
+        return [i.content(self.option) for i in items]
 
     def prepare(self):
         pass
@@ -436,9 +436,8 @@ class Item():
 
 class Book(Content):
     def __init__(self, session, option):
-        self.items   = []
-        self.lineLen = option['line_len']
-        self.lineNum = option['line_num']
+        self.items  = []
+        self.option = option
         (self.path, self.fp) = self.loadSession(session)
 
     def prepare(self, path=None):
@@ -463,11 +462,7 @@ class Book(Content):
             if i < len(self.items):
                 output.append(self.items[i])
             else:
-                option = {
-                        'line_len':self.lineLen,
-                        'line_num':self.lineNum,
-                        }
-                item = Page(self.fp, option)
+                item = Page(self.fp, self.option)
                 if item.content == "": break
                 self.items.append(item)
                 output.append(item)
@@ -483,26 +478,23 @@ class Book(Content):
 
 class Page(Item):
     def __init__(self, fp, option):
-        self.lineLen = option['line_len']
-        self.lineNum = option['line_num']
-
         content = []
         line_loaded = 0
-        while line_loaded <= self.lineNum:
+        while line_loaded <= option['line_num']:
             line = fp.readline().decode('utf-8')
             if not line: break
             line = line.rstrip('\r\n')
             if len(line) == 0: line = " "
             p = 0
             while p < len(line):
-                content.append(line[p:p+self.lineLen])
+                content.append(line[p:p+option['line_len']])
                 line_loaded += 1
-                p += self.lineLen
+                p += option['line_len']
 
-        self.string = "\n".join(content)
+        self.text = "\n".join(content)
 
-    def content(self):
-        return self.string
+    def content(self, option):
+        return self.text
 
 # }}}
 
@@ -511,6 +503,7 @@ class Page(Item):
 class Weibo(Content):
     def __init__(self, session, option):
         self.items      = []
+        self.option     = option
         self.token_info = self.loadSession(session)
 
     def reqAuthPage(self):
@@ -568,7 +561,7 @@ class Weibo(Content):
             logging.exception('')
 
         for raw_tweet in raw_timeline['statuses']:
-            self.items.append(Tweet(raw_tweet))
+            self.items.append(Weebo(raw_tweet))
 
         return self.items
 
@@ -598,6 +591,15 @@ class Weibo(Content):
     def loadSession(self, token_info):
         return token_info
 
+class Weebo(Item):
+    def __init__(self, raw_weebo):
+        self.id = long(raw_weebo['id'])
+        self.author = raw_weebo['user']['name']
+        self.text = raw_weebo['text']
+
+    def content(self, option):
+        return self.author + ": " + self.text + "\n"
+
 # }}}
 
 # Content: Twitter {{{
@@ -606,6 +608,7 @@ class Twitter(Content):
     def __init__(self, session, option):
         # instance variables
         self.items        = []
+        self.option       = option
         self.access_token = self.loadSession(session)
 
         # oauth2
@@ -701,7 +704,8 @@ class Tweet(Item):
         self.author = raw_tweet['user']['name']
         self.text = raw_tweet['text']
 
-    def content(self):
+    def content(self, option):
+
         return self.author + ": " + self.text + "\n"
 
 # }}}
