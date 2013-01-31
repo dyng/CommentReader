@@ -61,9 +61,6 @@ Novel
 
 3. Up to now, CommentReader can read plain text file in *UTF-8* encoding *only*.
 
-Commands
--------------
-
 Maps
 -------------
 - l: next page
@@ -79,9 +76,45 @@ There is also a useful command `CRtoggle` you can map to the key as you like, `<
 
 Session
 -------------
+By default, CommentReader will save your profile about API key, novel's file path in `$HOME/.vim_creader_session`. With the profile file, you can run `:CRopentwitter`, `:CRopenweibo`, `:CRopenbook` without argument for easy.
+
+If you want, the profile auto-save can be turned off by adding
+
+        let g:creader_auto_save = 0
+
+in your `.vimrc`.
+
+Or, maybe you don't want to turn it off but just to save the profile in another position, you can. Add
+
+        let g:creader_session_file = path/to/you/want
+
+in your `.vimrc`.
+
+Commands
+-------------
+- CRopenbook
+- CRopenweibo   
+- CRopentwitter 
+- CRtoggle      
+- CRrefresh     
+- CRshow        
+- CRhide        
+- CRclose       
+- CRforward     
+- CRbackward    
+- CRnext        
+- CRprevious    
+- CRsave        
+
 
 Configs
 -------------
+- g:creader_chars_per_line
+- g:creader_lines_per_block
+- g:creader_session_file
+- g:creader_auto_save
+- g:creader_debug_mode
+- g:creader_log_file
 
 Snapshots
 =============
