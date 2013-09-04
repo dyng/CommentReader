@@ -118,6 +118,6 @@ Configs
 
 Snapshots
 =============
-[![snapshot1](http://dygvirus.info/images/thumbnail/2013-01-30T1.png)](http://dygvirus.info/images/full/2013-01-30T1.png)
+[![snapshot1](https://raw.github.com/dyng/CommentReader/master/screenshots/thumbnail1.png)](https://raw.github.com/dyng/CommentReader/master/screenshots/full1.png)
 
-[![snapshot1](http://dygvirus.info/images/thumbnail/2013-01-30T2.png)](http://dygvirus.info/images/full/2013-01-30T2.png)
+[![snapshot2](https://raw.github.com/dyng/CommentReader/master/screenshots/thumbnail2.png)](https://raw.github.com/dyng/CommentReader/master/screenshots/full2.png)
